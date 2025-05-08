@@ -7,11 +7,13 @@ use crate::structure::tree::NodeLink;
 use crate::structure::bst::BstNodeLink;
 use crate::tool::generate_dotfile;
 use crate::tool::generate_dotfile_bst;
+use crate::structure::btree::BTreeNode;
 
 fn main() {
     //turn on to test the old code
     // test_binary_tree();
-    test_binary_search_tree();
+    // test_binary_search_tree();
+    test_index();
 }
 
 fn test_binary_search_tree(){
@@ -56,6 +58,16 @@ fn test_binary_search_tree(){
                 third_left_subtree_link.borrow_mut().add_left_child(third_left_subtree_link, 9);
             }
         }
+    }
+
+    // test add_node
+    let added = BstNode::add_node(&rootlink, , 16);
+    println!("Added node {}", added);
+    println!();
+
+    // test median
+    if let Some(med) = BstNode::median(&rootlink) {
+        println!("Median Node value : {}", med.borrow().key)
     }
 
     //print the tree at this time
@@ -135,7 +147,15 @@ fn test_index(){
                                 vec![1, 3, 1, 1],
                                 vec![2, 1, 2, 4]
                                 ];
-    println!("{0}", words[0][0]);
+    let root = BTreeNode::new(-1);
+    for word in &words {
+        let num = word.iter().fold(0, |acc, d| acc * 10 + d);
+        BTreeNode::insert(&root, num);
+    }
+    // lookup test
+    let query = vec![1,2,3,5];
+    let found = BTreeNode::lookup(&root, query);
+    println!("Lookup result: {}", found);
 }
 
 #[allow(dead_code)]

@@ -264,6 +264,105 @@ impl BstNode {
         false
     }
 
+    pub fn add_node(&self, root: &BstNodeLink, target_node: &BstNodeLink, value: i32) -> bool {
+        fn find_and_add (current: &BstNodeLink, target:&BstNodeLink, value: i32) -> bool {
+            if let (Some(curr_rc), Some(target_rc)) = (current, target) {
+                if Rc::ptr_eq (curr_rc, target_rc) {
+                    let mut curr = curr_rc.borrow_mut();
+                    let new_node = Rc::new(Refcell::new(BstNode {key, left: None, right: None, parent: Some(Rc::downgrade(curr_rc))}));
+
+                    if value < curr.key && curr.left.is_none() {
+                        curr.left = Some(new_node);
+                        return true;
+                    } else if curr.right.is_none() {
+                        curr.right = Some(new_node);
+                        return true;
+                    }
+                    return false;
+                }
+                let curr - curr_rc.borrow();
+                find_and_add (&curr.left, target, value) || find_and_add (&curr.right, target, value)
+            } else {
+                false
+            }
+        }
+        find_and_add (root, target_node, value);
+    }
+
+    pub fn tree_predecessor (node: &BstNodeLink) -> Option<BstNodeLink> {
+        let mut current = node.as_ref()?.borrow().left.clone();
+        while let Some(ref n) = current {
+            if n.borrow().right.is_some() {
+                current = n.borrow().right.clone();
+            } else {
+                break;
+            }
+        }
+        current
+    }
+
+    pub fn median (&self, root:&BstNodeLink) -> BstNodeLink {
+        fn count_nodes(node: &BstNodeLink) -> usize {
+            if let Some(n) = node {
+                let n = n.borrow();
+                1 + count_nodes(&n.left) + count_nodes(&n.right)
+            } else {0}
+        }
+        fn inorder_find(node: &BstNodeLink, count: &mut usize, target: usize) -> BstNodeLink {
+            if let Some(n) = node {
+                let left = inorder_find(&n.borrow().left, count, target)
+                if left.is_some() {
+                    return left;
+                } if *count == target {
+                    return Some(Rc::clone(n))
+                } *count += 1;
+                inorder_find(&n.borrow().right, count, target)
+            } else {
+                None
+            }
+        }
+        let total = count_nodes(root);
+        let mut count = 0;
+        inorder_find(root, &mut count, total/2)
+    }
+
+    fn build_balanced (
+        nodes: &[Rc<Refcell<BstNode>>],
+        parent: Option<Weak<RefCell<BstNode>>>,
+    ) -> BstNodeLink {
+        if nodes.is_empty() {
+            return None;
+        }
+        let mid = nodes.len() / 2;
+        let root = Rc::new(RefCell::new(BstNode{key: nodes[mid].borrow().key, 
+            left: None, 
+            right: None, 
+            parent: parent.clone(),
+        }))
+        let left = build_balanced(&nodes[..mid], Some(Rc::downgrade(&root)));
+        let right = build_balanced(&nodes[mid+1..], Some(Rc::downgrade(&root)));
+        {
+            let mut root_mut = root.borrow_mut();
+            root_mut.left = left;
+            root_mut.right = right;
+        }
+        Some (root)
+    }
+
+    pub fn tree_rebalance(node: &BstNodeLink) -> BstNodeLink{
+        fn inorder_collect(node: &BstNodeLink, nodes: &mut Vec<Rc<RefCell<BstNode>>>) {
+            if let Some(n) = node {
+                let n_ref = n.borrow();
+                inorder_collect(&n_ref.left, nodes);
+                nodes.push(Rc::clone(n));
+                inorder_collect(&n_ref.right, nodes);
+            }
+        }
+        let mut nodes = Vec::new();
+        inorder_collect(node, &mut nodes);
+        build_balanced(&nodes, None);
+    }
+
     /**
      * Alternate simpler version of tree_successor that made use of is_nil checking
      */
